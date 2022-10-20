@@ -89,7 +89,7 @@ let expectedSchema;
 
 beforeEach(async () => {
   expectedSchema = {
-    id: 'Test',
+    id: 'test',
     title: 'TestSchema',
     type: 'object',
     additionalProperties: false,
@@ -241,7 +241,7 @@ describe('SHACL to list of schemas', () => {
     }
   });
 
-  it('should accept different prefix specifications and targetClass without prefix', async () => {
+  it('should accept different prefix specifications and targetClass without prefix, and prop close to [', async () => {
     const actual = getSchemasFromTtl(`
       @prefix other:  <http://www.w3.org/ns/shacl#> .
       @prefix xx:  <http://www.w3.org/2001/XMLSchema#> . 
@@ -250,14 +250,13 @@ describe('SHACL to list of schemas', () => {
       other:targetClass TestSchema;
       other:ignoredProperties ( rdf:type ) ;
       other:closed true;
-      other:property [
-        other:path other:aPath;
+      other:property [other:path other:aPath;
         other:datatype xx:string;
         other:maxCount 1;
       ].`);
     expect(actual[0]).toEqual({
       additionalProperties: false,
-      id: 'Test',
+      id: 'test',
       properties: { aPath: { type: 'string' } },
       required: [],
       title: 'TestSchema',
@@ -281,7 +280,7 @@ describe('SHACL to list of schemas', () => {
       ].`);
     expect(actual[0]).toEqual({
       additionalProperties: false,
-      id: 'TestShapeWordNotIncluded',
+      id: 'testShapeWordNotIncluded',
       properties: { aPath: { type: 'string' } },
       required: [],
       title: 'TestSchema',
@@ -306,7 +305,7 @@ describe('SHACL to list of schemas', () => {
       ].`);
     expect(actual[0]).toEqual({
       additionalProperties: false,
-      id: 'Test',
+      id: 'test',
       properties: { aPath: { type: undefined, description: 'A text with # and # and ##' } },
       required: [],
       title: 'TestSchema',
@@ -332,7 +331,7 @@ describe('SHACL to list of schemas', () => {
       ].`);
     expect(actual[0]).toEqual({
       additionalProperties: false,
-      id: 'Test',
+      id: 'test',
       properties: { aPath: { type: 'string', description: 'A text' } },
       required: [],
       title: 'TestSchema',
@@ -340,7 +339,7 @@ describe('SHACL to list of schemas', () => {
     });
   });
 
-  it('should accept float number as param', async () => {
+  it('should accept float number as param and pattern with ; character', async () => {
     const actual = getSchemasFromTtl(`
       @prefix sh:  <http://www.w3.org/ns/shacl#> . 
       @prefix aa:  <http://www.w3.org/ns/shacl#test> .
@@ -352,15 +351,16 @@ describe('SHACL to list of schemas', () => {
       sh:closed true;
       sh:property [
         sh:path sh:aPath;
-        sh:description "A text";
+        sh:description "A text;";
         sh:maxCount 1;
         sh:maxInclusive 5.3;
         sh:datatype xx:double;
+        sh:pattern "^[a-zA-Z][0-9;a-zA-Z]";
       ].`);
     expect(actual[0]).toEqual({
       additionalProperties: false,
-      id: 'Test',
-      properties: { aPath: { type: 'number', description: 'A text', maximum: 5.3 } },
+      id: 'test',
+      properties: { aPath: { type: 'number', description: 'A text;', maximum: 5.3, pattern: '^[a-zA-Z][0-9;a-zA-Z]' } },
       required: [],
       title: 'TestSchema',
       type: 'object',
@@ -428,7 +428,7 @@ describe('SHACL to one unique schema', () => {
     `);
 
     expect(actual).toEqual({
-      id: 'Test',
+      id: 'test',
       title: 'TestSchema',
       type: 'object',
       additionalProperties: false,

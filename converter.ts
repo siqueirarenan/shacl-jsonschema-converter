@@ -72,11 +72,11 @@ type SchemaOptions = {
   // ---------------- Helper Functions ----------------------
 
   function replacePrefixes(model: string, prefixes: object) {
-    let words = model.split(' ');
+    let words = model.replace(/\[/g, '[ ').split(' ');
     Object.keys(prefixes).forEach(prefix => {
       words = words.map(word => (word.includes(`${prefix}:`) ? `<${word.replace(`${prefix}:`, prefixes[prefix])}>` : word));
     });
-    return words.join(' ');
+    return words.join(' ').replace(/\[ /g, '[');
   }
 
   function getPrefixes(models: string[]) {
@@ -114,76 +114,73 @@ type SchemaOptions = {
     let isRequired = false;
     let isArray = true;
 
-    propLine
-      .substring(1, propLine.length - 2)
-      .split(';')
-      .forEach(x => {
-        const keyValue = x.trim().split(' ');
-        const key = keyValue[0];
-        let value = keyValue.slice(1).join(' ');
+    getListOfSemiColonSeparatedProperties(propLine).forEach(x => {
+      const keyValue = x.trim().split(' ');
+      const key = keyValue[0];
+      let value = keyValue.slice(1).join(' ');
 
-        switch (key) {
-          case '<http://www.w3.org/ns/shacl#path>':
-            value = value.replace('<', '').replace('>', '');
-            propName = value.includes('#') ? value.split('#')[1] : value.split('/').slice(-1)[0];
-            break;
-          case '<http://www.w3.org/ns/shacl#name>':
-            propSchema.title = value.substring(1, value.length - 1);
-            break;
-          case '<http://www.w3.org/ns/shacl#datatype>':
-            propSchema.type = convertDatatype(value);
-            break;
-          case '<http://www.w3.org/ns/shacl#description>':
-            propSchema.description = value.substring(1, value.length - 1);
-            break;
-          case '<http://www.w3.org/ns/shacl#maxExclusive>':
-            propSchema.exclusiveMaximum = parseFloat(value.replace(/\"/, ''));
-            break;
-          case '<http://www.w3.org/ns/shacl#maxInclusive>':
-            propSchema.maximum = parseFloat(value.replace(/\"/, ''));
-            break;
-          case '<http://www.w3.org/ns/shacl#minInclusive>':
-            propSchema.minimum = parseFloat(value.replace(/\"/, ''));
-            break;
-          case '<http://www.w3.org/ns/shacl#minExclusive>':
-            propSchema.exclusiveMinimum = parseFloat(value.replace(/\"/, ''));
-            break;
-          case '<http://www.w3.org/ns/shacl#maxLength>':
-            propSchema.maxLength = parseFloat(value.replace(/\"/, ''));
-            break;
-          case '<http://www.w3.org/ns/shacl#minLength>':
-            propSchema.minLength = parseFloat(value.replace(/\"/, ''));
-            break;
-          case '<http://www.w3.org/ns/shacl#pattern>':
-            propSchema.pattern = value
-              .substring(1, value.length - 1)
-              .replace(/\\\\/g, '\\')
-              .replace(/\\\\/g, '\\');
-            break;
-          case '<http://www.w3.org/ns/shacl#in>':
-            value = value.trim();
-            value = value.substring(1, value.length - 1);
-            value = value.trim();
-            value = value.substring(1, value.length - 1);
-            propSchema.enum = value.replace('""', '" "').split('" "');
-            propSchema.type = 'string';
-            break;
-          case '<http://www.w3.org/ns/shacl#minCount>':
-            const minCount = parseInt(value.replace(/\"/, ''));
-            if (minCount > 0) isRequired = true;
-            if (minCount > 0) propSchema.minItems = minCount;
-            break;
-          case '<http://www.w3.org/ns/shacl#maxCount>':
-            const maxCount = parseInt(value.replace(/\"/, ''));
-            if (maxCount == 1) isArray = false;
-            if (isArray) propSchema.maxItems = maxCount;
-            break;
-          case '<http://www.w3.org/ns/shacl#node>':
-            propSchema.type = 'object';
-            propSchema.$ref = (options?.basePath ? options.basePath : '') + getLabel(value);
-            break;
-        }
-      });
+      switch (key) {
+        case '<http://www.w3.org/ns/shacl#path>':
+          value = value.replace('<', '').replace('>', '');
+          propName = value.includes('#') ? value.split('#')[1] : value.split('/').slice(-1)[0];
+          break;
+        case '<http://www.w3.org/ns/shacl#name>':
+          propSchema.title = value.substring(1, value.length - 1);
+          break;
+        case '<http://www.w3.org/ns/shacl#datatype>':
+          propSchema.type = convertDatatype(value);
+          break;
+        case '<http://www.w3.org/ns/shacl#description>':
+          propSchema.description = value.substring(1, value.length - 1);
+          break;
+        case '<http://www.w3.org/ns/shacl#maxExclusive>':
+          propSchema.exclusiveMaximum = parseFloat(value.replace(/\"/, ''));
+          break;
+        case '<http://www.w3.org/ns/shacl#maxInclusive>':
+          propSchema.maximum = parseFloat(value.replace(/\"/, ''));
+          break;
+        case '<http://www.w3.org/ns/shacl#minInclusive>':
+          propSchema.minimum = parseFloat(value.replace(/\"/, ''));
+          break;
+        case '<http://www.w3.org/ns/shacl#minExclusive>':
+          propSchema.exclusiveMinimum = parseFloat(value.replace(/\"/, ''));
+          break;
+        case '<http://www.w3.org/ns/shacl#maxLength>':
+          propSchema.maxLength = parseFloat(value.replace(/\"/, ''));
+          break;
+        case '<http://www.w3.org/ns/shacl#minLength>':
+          propSchema.minLength = parseFloat(value.replace(/\"/, ''));
+          break;
+        case '<http://www.w3.org/ns/shacl#pattern>':
+          propSchema.pattern = value
+            .substring(1, value.length - 1)
+            .replace(/\\\\/g, '\\')
+            .replace(/\\\\/g, '\\');
+          break;
+        case '<http://www.w3.org/ns/shacl#in>':
+          value = value.trim();
+          value = value.substring(1, value.length - 1);
+          value = value.trim();
+          value = value.substring(1, value.length - 1);
+          propSchema.enum = value.replace('""', '" "').split('" "');
+          propSchema.type = 'string';
+          break;
+        case '<http://www.w3.org/ns/shacl#minCount>':
+          const minCount = parseInt(value.replace(/\"/, ''));
+          if (minCount > 0) isRequired = true;
+          if (minCount > 0) propSchema.minItems = minCount;
+          break;
+        case '<http://www.w3.org/ns/shacl#maxCount>':
+          const maxCount = parseInt(value.replace(/\"/, ''));
+          if (maxCount == 1) isArray = false;
+          if (isArray) propSchema.maxItems = maxCount;
+          break;
+        case '<http://www.w3.org/ns/shacl#node>':
+          propSchema.type = 'object';
+          propSchema.$ref = (options?.basePath ? options.basePath : '') + getLabel(value);
+          break;
+      }
+    });
 
     if (options && options.excludeProperties.includes(propName)) isRequired = false;
 
@@ -214,7 +211,7 @@ type SchemaOptions = {
       case '<http://www.w3.org/2001/XMLSchema#double>':
         return 'number';
       case '<http://www.w3.org/2001/XMLSchema#integer>':
-        return 'number';
+        return 'integer';
       case '<http://www.w3.org/2001/XMLSchema#boolean>':
         return 'boolean';
       default:
@@ -239,9 +236,32 @@ type SchemaOptions = {
     return models;
   }
 
+  function getListOfSemiColonSeparatedProperties(propLine: string) {
+    propLine = propLine.substring(1, propLine.length - 2);
+    const letters = [];
+    let isInString = false;
+    for (let i = 0; i < propLine.length; i++) {
+      let char = propLine.charAt(i);
+      if (char == '"') isInString = !isInString;
+      if (char == ';' && !isInString) char = '::PROP_SEPARATOR::';
+      letters.push(char);
+    }
+    return letters.join('').split('::PROP_SEPARATOR::').slice(0, -1);
+  }
+
   function removeExtraSpacesAndLinebreaks(turtle: string) {
-    return turtle
-      .replace(/\;/g, ' ; ')
+    const letters = [];
+    let isInString = false;
+    for (let i = 0; i < turtle.length; i++) {
+      let char = turtle.charAt(i);
+      if (char == '"') isInString = !isInString;
+      if (char == ';' && !isInString) char = '::SEMICOLON_SEPARATOR::';
+      letters.push(char);
+    }
+
+    return letters
+      .join('')
+      .replace(/::SEMICOLON_SEPARATOR::/g, ' ; ')
       .replace(/((#)(?=(?:[^">]|"[^"]*")*$)).*/gm, '') //Remove comments
       .replace(/\r?\n/g, '') //Remove line breaks
       .replace(/ +(?= )/g, '') //Remove multiple spaces
@@ -250,15 +270,16 @@ type SchemaOptions = {
   }
 
   function getLabel(modelString: string): string {
-    let labelName = modelString.split(' ')[0].replace('<', '').replace('>', '');
-    labelName = labelName.includes('#') ? labelName.split('#')[1] : labelName.split('/').slice(-1)[0];
-    return labelName.endsWith('Shape') ? labelName.substring(0, labelName.length - 5) : labelName;
+    const fullName = modelString.split(' ')[0].replace('<', '').replace('>', '');
+    let labelName = fullName.includes('#') ? fullName.split('#')[1] : fullName.split('/').slice(-1)[0];
+    labelName = labelName.endsWith('Shape') ? labelName.substring(0, labelName.length - 5) : labelName;
+    return labelName.charAt(0).toLowerCase() + labelName.slice(1);
   }
 
   function getShapeName(modelString: string): string {
+    const model = modelString.split(';');
     try {
-      const fullName = modelString
-        .split(';')
+      const fullName = model
         .find(x => x.trim().startsWith('<http://www.w3.org/ns/shacl#targetClass>'))
         .trim()
         .split(' ')[1]
@@ -284,3 +305,4 @@ type SchemaOptions = {
         throw { message: 'redf:type must be ignored' };
     }
   }
+  
